@@ -77,12 +77,12 @@ class PassSlot {
 	/**
 	 * SDK Version
 	 */
-	const VERSION = '0.1';
+	const VERSION = '0.2';
 
 	/**
 	 * Default user agent
 	 */
-	const USER_AGENT = 'PassSlotSDK-PHP/0.1';
+	const USER_AGENT = 'PassSlotSDK-PHP/0.2';
 
 	/**
 	 * Creates a new PassSlot instance
@@ -197,7 +197,10 @@ class PassSlot {
 	 * @throws PassSlotApiException API Exception
 	 */
 	public function getPassURL($pass) {
-		$resource = $api_url . sprintf("/passes/%s/%s/url", $pass -> passTypeIdentifier, $pass -> serialNumber);
+		if ($pass -> url) {
+			return $pass -> url;
+		}
+		$resource = sprintf("/passes/%s/%s/url", $pass -> passTypeIdentifier, $pass -> serialNumber);
 		return $this -> _restCall('GET', $resource) -> url;
 	}
 
@@ -210,6 +213,19 @@ class PassSlot {
 	public function redirectToPass($pass) {
 		$url = $this -> getPassURL($pass);
 		header("Location: " . $url);
+	}
+
+	/**
+	 * Emails the pass to the specified email address
+	 *
+	 * @param object $pass Existing pass
+	 * @param string $email Recipient's email address
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function emailPass($pass, $email) {
+		$resource = sprintf("/passes/%s/%s/email", $pass -> passTypeIdentifier, $pass -> serialNumber);
+		$content = array("email" => $email);
+		$this -> _restCall('POST', $resource, $content);
 	}
 
 	/**
@@ -284,6 +300,9 @@ class PassSlot {
 			if ($multipart) {
 				curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
 			} else {
+				if ($content == null) {
+					$content = json_decode('{}');
+				}
 				curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($content));
 				$httpHeaders[] = 'Content-Type: application/json';
 			}
@@ -313,12 +332,11 @@ class PassSlot {
 
 		if ($httpCode == 422) {
 			// Validation Error
-			var_dump("validation error");
 			throw new PassSlotApiValidationException($response);
 		}
 
 		if ($httpCode == 401) {
-			throw new PassSlotApiUnauthorizedException('To make API requests, the PHP curl extension must be available.');
+			throw new PassSlotApiUnauthorizedException();
 		}
 
 		if ($httpCode < 200 || $httpCode >= 300) {
@@ -348,7 +366,7 @@ class PassSlotApiException extends Exception {
 	 */
 	public function __construct($message, $code = 0) {
 		$json = json_decode($message);
-		parent::__construct($json ? $json -> error : $message, $code);
+		parent::__construct($json ? $json -> message : $message, $code);
 	}
 
 	/**

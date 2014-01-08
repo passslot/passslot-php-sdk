@@ -1,4 +1,4 @@
-PassSlot PHP SDK (v.0.1)
+PassSlot PHP SDK (v.0.2)
 
 [PassSlot](http://www.passslot.com) is a Passbook service that makes Passbook usage easy for everybody. It helps you design and distribute mobile passes to all major mobile platforms.
 
