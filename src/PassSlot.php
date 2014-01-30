@@ -77,7 +77,7 @@ class PassSlot {
 	/**
 	 * SDK Version
 	 */
-	const VERSION = '0.2';
+	const VERSION = '0.3';
 
 	/**
 	 * Default user agent
@@ -89,11 +89,14 @@ class PassSlot {
 	 *
 	 * @param string $appKey App Key
 	 */
-	public function __construct($appKey = null) {
+	public function __construct($appKey = null, $endpoint = null) {
 		if (is_null($appKey)) {
 			throw new Exception('App Key required');
 		}
 		$this -> _appKey = $appKey;
+		if ($endpoint !== null) {
+			$this -> _endpoint = $endpoint;
+		}
 	}
 
 	/**
@@ -102,9 +105,9 @@ class PassSlot {
 	 * @param string $appKey App Key
 	 * @return PassSlot Shared PassSlot instance.
 	 */
-	public static function start($appKey = null) {
+	public static function start($appKey = null, $endpoint = null) {
 		if (self::$_instance == null) {
-			self::$_instance = new self($appKey);
+			self::$_instance = new self($appKey, $endpoint);
 		}
 		return self::$_instance;
 	}
@@ -229,6 +232,32 @@ class PassSlot {
 	}
 
 	/**
+	 * Update a single value of a pass
+	 *
+	 * @param object $pass Existing pass
+	 * @param string $placeholderName Name of the placeholder for which the value should be updated
+	 * @param object $value New value of the placeholder
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function updatePassValue($pass, $placeholderName, $value) {
+		$resource = sprintf("/passes/%s/%s/values/%s", $pass -> passTypeIdentifier, $pass -> serialNumber, $placeholderName);
+		$content = array("value" => $value);
+		$this -> _restCall('PUT', $resource, $content);
+	}
+
+	/**
+	 * Update the values of a pass
+	 *
+	 * @param object $pass Existing pass
+	 * @param object $values New values for the pass
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function updatePassValues($pass, $values) {
+		$resource = sprintf("/passes/%s/%s/values", $pass -> passTypeIdentifier, $pass -> serialNumber);
+		$this -> _restCall('PUT', $resource, $values);
+	}
+
+	/**
 	 * Prepares the values and image for the pass and creates it
 	 *
 	 * @param string $resource Resource URL for the pass creation
@@ -295,7 +324,9 @@ class PassSlot {
 		}
 
 		if ($httpMethod == 'POST' || $httpMethod == 'PUT') {
-			curl_setopt($ch, CURLOPT_POST, 1);
+			if ($httpMethod != 'POST') {
+				curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $httpMethod);
+			}
 
 			if ($multipart) {
 				curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
