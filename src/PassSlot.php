@@ -23,6 +23,9 @@ if (!function_exists('curl_init')) {
 if (!function_exists('json_decode')) {
 	throw new Exception('PassSlot needs the JSON PHP extension.');
 }
+if (!function_exists('mime_content_type')) {
+	throw new Exception('PassSlot needs the FILEINFO PHP extension.');
+}
 
 /**
  * This class is the core of PassSlot.
