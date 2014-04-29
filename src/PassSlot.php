@@ -310,7 +310,7 @@ class PassSlot {
 				$httpHeaders[] = 'Content-Type: application/json';
 			}
 		} else if ($httpMethod == 'DELETE') {
-			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $httpHeaders);
+			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $httpMethod);
 		}
 
 		curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
