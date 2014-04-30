@@ -37,7 +37,12 @@ if (!function_exists('mime_content_type')) {
  * $values = array(
  *	'Name' => 'John',
  *	'Level' => 'Platinum',
- *	'Balance' => 20.50
+ *	'Balance' => 20.50,
+ *      'Locations' => array(array(
+ *          'latitude' => '44.833775',
+ *          'longitude' => '-0.6343934',
+ *          'relevantText' => 'Somewhere'
+ *      ))
  * );
  *
  * $images = array(
@@ -148,8 +153,23 @@ class PassSlot {
 		$resource = sprintf("/templates/%s/pass", $templateId);
 		return $this -> _createPass($resource, $values, $images);
 	}
+        
+        /**
+        * Returns descriptions of all created passbook passes
+        * 
+        * @param string $passType Optional filter on Pass Type ID
+        * 
+        * @return array
+        */
+       public function listPasses($passType = null) {
+           $resource = "/passes";
+           if ($passType != null) {
+               $resource .= sprintf("/%s", $passType);
+           }
+           return $this->_restCall("GET", $resource);
+       }
 
-	/**
+       /**
 	 * Same function as createPassFromTemplate but you can provide the template name instead of the template id
 	 *
 	 * @param string $templateName Template Name
@@ -174,6 +194,47 @@ class PassSlot {
 		$resource = sprintf("/passes/%s/%s", $pass -> passTypeIdentifier, $pass -> serialNumber);
 		return $this -> _restCall('GET', $resource);
 	}
+
+	/**
+	 * Returns the full passbook pass description of the given pass
+	 *
+	 * @param string $passTypeId Passbook Pass Type ID
+	 * @param string $passSerialNumber Passbook Serial Number
+         * 
+	 * @return object
+         * 
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function getPass($passTypeId, $passSerialNumber) {
+		$resource = sprintf("/passes/%s/%s/passjson", $passTypeId, $passSerialNumber);
+		return $this -> _restCall('GET', $resource);
+	}
+
+	/**
+	 * Sends a push update to a given passbook pass
+	 *
+	 * @param object $pass Existing pass
+         * 
+         * @return boolean
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function pushPass($pass) {
+		$resource = sprintf("/passes/%s/%s/push", $pass -> passTypeIdentifier, $pass -> serialNumber);
+		return $this -> _restCall('POST', $resource) == '' ? true : false;
+	}
+        
+        /**
+         * Delete a passbook using its pass type ID and serial number
+         * 
+	 * @param string $pass  Existing pass
+         * 
+         * @return boolean
+         */
+        public function deletePass($pass)
+        {
+		$resource = sprintf("/passes/%s/%s", $pass -> passTypeIdentifier, $pass -> serialNumber);
+		return $this -> _restCall('DELETE', $resource) == '' ? true : false;
+        }
 
 	/**
 	 * Outputs a pkpass file with proper content headers for Passbook.
@@ -206,8 +267,7 @@ class PassSlot {
 		if ($pass -> url) {
 			return $pass -> url;
 		}
-		$resource = sprintf("/passes/%s/%s/url", $pass -> passTypeIdentifier, $pass -> serialNumber);
-		return $this -> _restCall('GET', $resource) -> url;
+		return $this->getPass($pass -> passTypeIdentifier, $pass -> serialNumber) -> url;
 	}
 
 	/**
@@ -302,6 +362,7 @@ class PassSlot {
 		} else {
 			$content = $values;
 		}
+
 		return $this -> _restCall('POST', $resource, $content, $multipart);
 	}
 
