@@ -477,7 +477,7 @@ class PassSlot {
 	 * Create or update the image with the given type and resolution of
          * a pass template
 	 *
-	 * @param object $templateId Template Identifier
+	 * @param int $templateId Template Identifier
 	 * @param string $type Image type
 	 * @param string $resolution Image resolution
          * @param string $image Image file name
@@ -505,6 +505,56 @@ class PassSlot {
                 return $this -> _restCall('POST', $resource, $content, true);
         }
 
+        /**
+         * Updates the pass template distributions restrictions
+         * 
+         * @param int $templateId Template identifier
+         * @param int $quantityRestriction Quantity restriction
+         * @param int $redemptionRestriction Redemption restriction
+         * @param string $passwordProtection Password restriction
+         * @param string $dateRestriction Date (ISO 8601 format required)
+         * @param bool $sharingRestriction Sharing restriction
+         */
+        public function saveTemplateRestrictions($templateId, $quantityRestriction=null, $redemptionRestriction=null, $passwordProtection=null, $dateRestriction=null, $sharingRestriction=false)
+        {
+                if($quantityRestriction != null && !is_numeric($quantityRestriction))
+                {
+                    user_error('Invalid value for $quantityRestriction', E_USER_ERROR);
+                }
+                if($redemptionRestriction != null && !is_numeric($redemptionRestriction))
+                {
+                    user_error('Invalid value for $redemptionRestriction', E_USER_ERROR);
+                }
+                if(!is_bool($sharingRestriction))
+                {
+                    user_error('Invalid value for $sharingRestriction', E_USER_ERROR);
+                }
+                if($dateRestriction != null && !$this->_validateDate($dateRestriction))
+                {
+                    user_error('Invalid value for $dateRestriction, must use an ISO 8601 string.', E_USER_ERROR);
+                }
+                $resource = sprintf("/templates/%u/restrictions", $templateId);
+                $content = json_encode(array(
+                    "quantityRestriction" => $quantityRestriction,
+                    "redemptionRestriction" => $redemptionRestriction,
+                    "passwordProtection" => $passwordProtection,
+                    "dateRestriction" => $dateRestriction,
+                    "sharingRestriction" => $sharingRestriction
+                ));
+                return $this -> _restCall('PUT', $resource, $content, true);
+        }
+
+        /**
+         * Returns the pass template distributions restrictions
+         * 
+         * @param int $templateId Template identifier
+         */
+        public function getTemplateRestrictions($templateId)
+        {
+                $resource = sprintf("/templates/%u/restrictions", $templateId);
+                return $this -> _restCall('GET', $resource);
+        }
+        
 	/**
 	 * Prepares the values and image for the pass and creates it
 	 *
@@ -630,6 +680,26 @@ class PassSlot {
 
 		return $response;
 	}
+        
+        /**
+         * Check if a date match the ISO 8601 specs
+         * 
+         * @param string $date
+         * @return boolean
+         */
+        private function _validateDate($date)
+        {
+            if (preg_match('/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/', $date, $parts) == true) {
+                $time = gmmktime($parts[4], $parts[5], $parts[6], $parts[2], $parts[3], $parts[1]);
+
+                $input_time = strtotime($date);
+                if ($input_time === false) return false;
+
+                return $input_time == $time;
+            } else {
+                return false;
+            }
+        }
 
 }
 
