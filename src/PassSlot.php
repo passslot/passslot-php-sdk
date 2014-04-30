@@ -211,6 +211,20 @@ class PassSlot {
 	}
 
 	/**
+	 * Returns the placeholder values of a given passbook pass
+	 *
+	 * @param object $pass Existing pass
+         * 
+	 * @return object
+         * 
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function getPassValues($pass) {
+		$resource = sprintf("/passes/%s/%s/values", $pass -> passTypeIdentifier, $pass -> serialNumber);
+		return $this -> _restCall('GET', $resource);
+	}
+
+	/**
 	 * Sends a push update to a given passbook pass
 	 *
 	 * @param object $pass Existing pass
