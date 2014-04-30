@@ -153,6 +153,20 @@ class PassSlot {
 		$resource = sprintf("/templates/%s/pass", $templateId);
 		return $this -> _createPass($resource, $values, $images);
 	}
+
+       /**
+	 * Same function as createPassFromTemplate but you can provide the template name instead of the template id
+	 *
+	 * @param string $templateName Template Name
+	 * @param array $values Values for the placeholders
+	 * @param array $images Images that should be used for the pass
+	 * @see PassSlot::createPassFromTemplate()
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function createPassFromTemplateWithName($templateName, $values = array(), $images = array()) {
+		$resource = sprintf("/templates/names/%s/pass", rawurlencode($templateName));
+		return $this -> _createPass($resource, $values, $images);
+	}
         
         /**
         * Returns descriptions of all created passbook passes
@@ -168,20 +182,6 @@ class PassSlot {
            }
            return $this->_restCall("GET", $resource);
        }
-
-       /**
-	 * Same function as createPassFromTemplate but you can provide the template name instead of the template id
-	 *
-	 * @param string $templateName Template Name
-	 * @param array $values Values for the placeholders
-	 * @param array $images Images that should be used for the pass
-	 * @see PassSlot::createPassFromTemplate()
-	 * @throws PassSlotApiException API Exception
-	 */
-	public function createPassFromTemplateWithName($templateName, $values = array(), $images = array()) {
-		$resource = sprintf("/templates/names/%s/pass", rawurlencode($templateName));
-		return $this -> _createPass($resource, $values, $images);
-	}
 
 	/**
 	 * Downloads the pkpass file
@@ -319,6 +319,103 @@ class PassSlot {
 		$resource = sprintf("/passes/%s/%s/values", $pass -> passTypeIdentifier, $pass -> serialNumber);
 		$this -> _restCall('PUT', $resource, $values);
 	}
+        
+	/**
+	 * Returns all images of a pass
+	 *
+	 * @param object $pass Existing pass
+	 * @param string $type Optional filter image on a given type
+	 * @throws PassSlotApiException API Exception
+	 */
+        public function getPassImages($pass, $type="")
+        {
+		$resource = sprintf("/passes/%s/%s/images", $pass -> passTypeIdentifier, $pass -> serialNumber);
+                if($type != "")
+                {
+                    $resource .= "/".$type;
+                }
+		return $this -> _restCall('GET', $resource);
+        }
+        
+	/**
+	 * Returns the image with the given type and resolution of
+         * a pass
+	 *
+	 * @param object $pass Existing pass
+	 * @param string $type Image type
+	 * @param string $resolution Image resolution
+	 * @throws PassSlotApiException API Exception
+	 */
+        public function getPassImage($pass, $type, $resolution)
+        {
+		$resource = sprintf("/passes/%s/%s/images/%s/%s", $pass -> passTypeIdentifier, $pass -> serialNumber, $type, $resolution);
+		return $this -> _restCall('GET', $resource);
+        }
+        
+	/**
+	 * Deletes the image with the given type and resolution of
+         * a pass
+	 *
+	 * @param object $pass Existing pass
+	 * @param string $type Image type
+	 * @param string $resolution Image resolution
+         * @return bool
+	 * @throws PassSlotApiException API Exception
+	 */
+        public function deletePassImage($pass, $type, $resolution)
+        {
+		$resource = sprintf("/passes/%s/%s/images/%s/%s", $pass -> passTypeIdentifier, $pass -> serialNumber, $type, $resolution);
+		return $this -> _restCall('DELETE', $resource) == '' ? true : false;
+        }
+        
+	/**
+	 * Create or update the image with the given type and resolution of
+         * a pass
+	 *
+	 * @param object $pass Existing pass
+	 * @param string $type Image type
+	 * @param string $resolution Image resolution
+         * @param string $image Image file name
+         * @return bool
+	 * @throws PassSlotApiException API Exception
+	 */
+        public function savePassImage($pass, $type, $resolution, $image) 
+        {
+                if (!in_array($type, self::$_imageTypes) && !in_array($type . '2x', self::$_imageTypes)) {
+                    user_error('Image type ' . $type . ' not available.', E_USER_ERROR);
+                }
+
+                if (!is_file($image)) {
+                    user_error('No such image  ' . $image . '.', E_USER_ERROR);
+                }
+
+                $mimeType = mime_content_type($image);
+                if ($mimeType != 'image/png' && $mimeType != 'image/jpg' && $mimeType != 'image/gif') {
+                    user_error('Image mime type ' . $mimeType . ' not supported. Image will be ignored', E_USER_ERROR);
+                }
+
+                $content["image"] = sprintf('@%s;type=%s', realpath($image), $mimeType);
+
+                $resource = sprintf("/passes/%s/%s/images/%s/%s", $pass -> passTypeIdentifier, $pass -> serialNumber, $type, $resolution);
+                return $this -> _restCall('POST', $resource, $content, true);
+        }
+        
+	/**
+	 * Delete all images of a pass
+	 *
+	 * @param object $pass Existing pass
+	 * @param string $type Optional filter image on a given type
+	 * @throws PassSlotApiException API Exception
+	 */
+        public function deletePassImages($pass, $type="")
+        {
+		$resource = sprintf("/passes/%s/%s/images", $pass -> passTypeIdentifier, $pass -> serialNumber);
+                if($type != "")
+                {
+                    $resource .= "/".$type;
+                }
+		return $this -> _restCall('DELETE', $resource);
+        }
 
 	/**
 	 * Prepares the values and image for the pass and creates it
