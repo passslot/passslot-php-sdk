@@ -416,6 +416,80 @@ class PassSlot {
                 }
 		return $this -> _restCall('DELETE', $resource);
         }
+        
+        /**
+         * Returns all images of the pass template
+         * 
+         * @param int $templateId
+         * @return array
+	 * @throws PassSlotApiException API Exception
+         */
+        public function getTemplateImages($templateId, $type="")
+        {
+		$resource = sprintf("/templates/%u/images", $templateId, $resolution="");
+                if($type != "")
+                {
+                        $resource .= sprintf("/%s", $type);
+                }
+                if($resolution != "")
+                {
+                        $resource .= sprintf("/%s", $resolution);
+                }
+		return $this -> _restCall('GET', $resource);
+        }
+        
+        /**
+         * Deletes all images of the pass template
+         * 
+         * @param int $templateId
+         * @return array
+	 * @throws PassSlotApiException API Exception
+         */
+        public function deleteTemplateImages($templateId, $type="", $resolution="")
+        {
+		$resource = sprintf("/templates/%u/images", $templateId);
+                if($type != "")
+                {
+                        $resource .= sprintf("/%s", $type);
+                }
+                if($resolution != "")
+                {
+                        $resource .= sprintf("/%s", $resolution);
+                }
+		return $this -> _restCall('DELETE', $resource);
+        }
+        
+	/**
+	 * Create or update the image with the given type and resolution of
+         * a pass template
+	 *
+	 * @param object $templateId Template Identifier
+	 * @param string $type Image type
+	 * @param string $resolution Image resolution
+         * @param string $image Image file name
+         * @return bool
+	 * @throws PassSlotApiException API Exception
+	 */
+        public function saveTemplateImage($templateId, $type, $resolution, $image) 
+        {
+                if (!in_array($type, self::$_imageTypes) && !in_array($type . '2x', self::$_imageTypes)) {
+                    user_error('Image type ' . $type . ' not available.', E_USER_ERROR);
+                }
+
+                if (!is_file($image)) {
+                    user_error('No such image  ' . $image . '.', E_USER_ERROR);
+                }
+
+                $mimeType = mime_content_type($image);
+                if ($mimeType != 'image/png' && $mimeType != 'image/jpg' && $mimeType != 'image/gif') {
+                    user_error('Image mime type ' . $mimeType . ' not supported. Image will be ignored', E_USER_ERROR);
+                }
+
+                $content["image"] = sprintf('@%s;type=%s', realpath($image), $mimeType);
+
+                $resource = sprintf("/templates/%u/images/%s/%s", $templateId, $type, $resolution);
+                return $this -> _restCall('POST', $resource, $content, true);
+        }
 
 	/**
 	 * Prepares the values and image for the pass and creates it
