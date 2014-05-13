@@ -1,11 +1,8 @@
-PassSlot PHP SDK (v.0.2)
+PassSlot PHP SDK (v.0.3.1)
 
-[PassSlot](http://www.passslot.com) is a Passbook service that makes Passbook usage easy for everybody. It helps you design and distribute mobile passes to all major mobile platforms.
+This is a forked version of [PassSlot SDK](https://github.com/passslot/passslot-php-sdk).
 
-This repository contains the open source PHP SDK that allows you to
-access PassSlot from your PHP app. Except as otherwise noted,
-the PassSlot PHP SDK is licensed under the Apache Licence, Version 2.0
-(http://www.apache.org/licenses/LICENSE-2.0.html).
+This version add a lot of new methods to implements basic usage of PassSlot API.
 
 Usage
 -----
@@ -20,3 +17,34 @@ $pass = $engine->createPassFromTemplate(<Template ID>);
 $engine->redirectToPass($pass);
 ```
 (Assuming you have already setup a template that does not require any values)
+
+
+Installing the SDK using Composer
+-----
+
+Sample configuration
+
+```json
+{
+    "repositories": [
+        {
+            "type": "package",
+            "package": {
+                "name": "Kevin/passslot-sdk",
+                "version": "0.3.1",
+                "source": {
+                    "url": "https://github.com/kevin39/passslot-php-sdk.git",
+                    "type": "git",
+                    "reference": "0.3.1"
+                },
+                "autoload": {
+                    "classmap": ["src/"]
+                }
+            }
+        }
+    ],
+    "require": {
+        "Kevin/passslot-sdk": "0.3.*"
+    }
+}
+````
