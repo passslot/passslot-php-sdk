@@ -292,7 +292,8 @@ class PassSlot {
 		if ($pass -> url) {
 			return $pass -> url;
 		}
-		return $this->getPass($pass -> passTypeIdentifier, $pass -> serialNumber) -> url;
+		$resource = sprintf("/passes/%s/%s/url", $pass -> passTypeIdentifier, $pass -> serialNumber);
+		return $this -> _restCall('GET', $resource) -> url;
 	}
 
 	/**
