@@ -80,19 +80,19 @@ class PassSlot {
 	/**
 	 * SDK Version
 	 */
-	const VERSION = '0.3';
+	const VERSION = '0.4';
 
 	/**
 	 * Default user agent
 	 */
-	const USER_AGENT = 'PassSlotSDK-PHP/0.3';
+	const USER_AGENT = 'PassSlotSDK-PHP/0.4';
 
 	/**
 	 * Creates a new PassSlot instance
 	 *
 	 * @param string $appKey App Key
 	 */
-	public function __construct($appKey = null, $endpoint = null) {
+	public function __construct($appKey = null, $endpoint = null, $debug = false) {
 		if (is_null($appKey)) {
 			throw new Exception('App Key required');
 		}
@@ -100,6 +100,8 @@ class PassSlot {
 		if ($endpoint !== null) {
 			$this -> _endpoint = $endpoint;
 		}
+
+		$this -> _debug = $debug;
 	}
 
 	/**
@@ -164,6 +166,31 @@ class PassSlot {
 	}
 
 	/**
+	 * Returns descriptions of all created passbook passes
+	 *
+	 * @param string $passType Optional filter on Pass Type ID
+	 *
+	 * @return array
+	 */
+	public function listPasses($passType = null) {
+		$resource = "/passes";
+		if ($passType != null) {
+			$resource .= sprintf("/%s", $passType);
+		}
+		return $this->_restCall("GET", $resource);
+	}
+
+	/**
+	 * Returns descriptions of all created passes templates
+	 *
+	 * @return array
+	 */
+	public function listTemplates() {
+		$resource = "/templates";
+		return $this->_restCall("GET", $resource);
+	}
+
+	/**
 	 * Downloads the pkpass file
 	 *
 	 * @param object $pass The pass created with PassSlot::createPassFromTemplate() or PassSlot::createPassFromTemplateWithName()
@@ -173,6 +200,90 @@ class PassSlot {
 	public function downloadPass($pass) {
 		$resource = sprintf("/passes/%s/%s", $pass -> passTypeIdentifier, $pass -> serialNumber);
 		return $this -> _restCall('GET', $resource);
+	}
+
+	/**
+	 * Returns the full passbook pass description of the given pass
+	 *
+	 * @param string $passTypeId Passbook Pass Type ID
+	 * @param string $passSerialNumber Passbook Serial Number
+	 *
+	 * @return object
+	 *
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function getPassJson($pass) {
+		$resource = sprintf("/passes/%s/%s/passjson", $pass -> passTypeIdentifier, $pass -> serialNumber);
+		return $this -> _restCall('GET', $resource);
+	}
+
+	/**
+	 * Returns the placeholder values of a given passbook pass
+	 *
+	 * @param object $pass Existing pass
+	 *
+	 * @return object
+	 *
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function getPassValues($pass) {
+		$resource = sprintf("/passes/%s/%s/values", $pass -> passTypeIdentifier, $pass -> serialNumber);
+		return $this -> _restCall('GET', $resource);
+	}
+
+	/**
+	 * Returns the pass status
+	 *
+	 * @param object $pass Existing pass
+	 *
+	 * @return object
+	 *
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function getPassStatus($pass) {
+		$resource = sprintf("/passes/%s/%s/status", $pass -> passTypeIdentifier, $pass -> serialNumber);
+		return $this -> _restCall('GET', $resource);
+	}
+
+	/**
+	 * Updates the pass status
+	 *
+	 * @param object $pass Existing pass
+	 *
+	 * @return object
+	 *
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function updatePassStatus($pass, $status) {
+		$resource = sprintf("/passes/%s/%s/status", $pass -> passTypeIdentifier, $pass -> serialNumber);
+		$content = array("status" => $status);
+		return $this -> _restCall('PUT', $resource, $content);
+	}
+
+	/**
+	 * Sends a push update to a given passbook pass
+	 *
+	 * @param object $pass Existing pass
+	 *
+	 * @return boolean
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function pushPass($pass) {
+		$resource = sprintf("/passes/%s/%s/push", $pass -> passTypeIdentifier, $pass -> serialNumber);
+		return $this -> _restCall('POST', $resource) == '' ? true : false;
+	}
+
+	/**
+	 * Delete a passbook using its pass type ID and serial number
+	 *
+	 * @param string $pass  Existing pass
+	 *
+	 * @return boolean
+	 */
+	public function deletePass($pass)
+	{
+		$resource = sprintf("/passes/%s/%s", $pass -> passTypeIdentifier, $pass -> serialNumber);
+		return $this -> _restCall('DELETE', $resource) == '' ? true : false;
 	}
 
 	/**
@@ -257,7 +368,234 @@ class PassSlot {
 	 */
 	public function updatePassValues($pass, $values) {
 		$resource = sprintf("/passes/%s/%s/values", $pass -> passTypeIdentifier, $pass -> serialNumber);
-		$this -> _restCall('PUT', $resource, $values);
+		return $this -> _restCall('PUT', $resource, $values);
+	}
+
+	/**
+	 * Returns all images of a pass
+	 *
+	 * @param object $pass Existing pass
+	 * @param string $type Optional filter image on a given type
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function getPassImages($pass, $type="")
+	{
+		$resource = sprintf("/passes/%s/%s/images", $pass -> passTypeIdentifier, $pass -> serialNumber);
+		if($type != "")
+		{
+			$resource .= "/".$type;
+		}
+		return $this -> _restCall('GET', $resource);
+	}
+
+	/**
+	 * Returns the image with the given type and resolution of
+	 * a pass
+	 *
+	 * @param object $pass Existing pass
+	 * @param string $type Image type
+	 * @param string $resolution Image resolution
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function getPassImage($pass, $type, $resolution)
+	{
+		$resource = sprintf("/passes/%s/%s/images/%s/%s", $pass -> passTypeIdentifier, $pass -> serialNumber, $type, $resolution);
+		return $this -> _restCall('GET', $resource);
+	}
+
+	/**
+	 * Deletes the image with the given type and resolution of
+	 * a pass
+	 *
+	 * @param object $pass Existing pass
+	 * @param string $type Image type
+	 * @param string $resolution Image resolution
+	 * @return bool
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function deletePassImage($pass, $type, $resolution)
+	{
+		$resource = sprintf("/passes/%s/%s/images/%s/%s", $pass -> passTypeIdentifier, $pass -> serialNumber, $type, $resolution);
+		return $this -> _restCall('DELETE', $resource) == '' ? true : false;
+	}
+
+	/**
+	 * Create or update the image with the given type and resolution of
+	 * a pass
+	 *
+	 * @param object $pass Existing pass
+	 * @param string $type Image type
+	 * @param string $resolution Image resolution
+	 * @param string $image Image file name
+	 * @return bool
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function savePassImage($pass, $type, $resolution, $image)
+	{
+		if (!in_array($type, self::$_imageTypes) && !in_array($type . '2x', self::$_imageTypes)) {
+			user_error('Image type ' . $type . ' not available.', E_USER_ERROR);
+		}
+
+		if (!is_file($image)) {
+			user_error('No such image  ' . $image . '.', E_USER_ERROR);
+		}
+
+		$mimeType = mime_content_type($image);
+		if ($mimeType != 'image/png' && $mimeType != 'image/jpg' && $mimeType != 'image/gif') {
+			user_error('Image mime type ' . $mimeType . ' not supported. Image will be ignored', E_USER_ERROR);
+		}
+
+		$content["image"] = sprintf('@%s;type=%s', realpath($image), $mimeType);
+
+		$resource = sprintf("/passes/%s/%s/images/%s/%s", $pass -> passTypeIdentifier, $pass -> serialNumber, $type, $resolution);
+		return $this -> _restCall('POST', $resource, $content, true);
+	}
+
+	/**
+	 * Delete all images of a pass
+	 *
+	 * @param object $pass Existing pass
+	 * @param string $type Optional filter image on a given type
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function deletePassImages($pass, $type="")
+	{
+		$resource = sprintf("/passes/%s/%s/images", $pass -> passTypeIdentifier, $pass -> serialNumber);
+		if($type != "")
+		{
+			$resource .= "/".$type;
+		}
+		return $this -> _restCall('DELETE', $resource);
+	}
+
+
+	public function getTemplate($templateId) {
+		$resource = sprintf("/templates/%u", $templateId);
+		return $this -> _restCall('GET', $resource);
+	}
+
+	/**
+	 * Returns all images of the pass template
+	 *
+	 * @param int $templateId
+	 * @return array
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function getTemplateImages($templateId, $type="")
+	{
+		$resource = sprintf("/templates/%u/images", $templateId, $resolution="");
+		if($type != "")
+		{
+			$resource .= sprintf("/%s", $type);
+		}
+		if($resolution != "")
+		{
+			$resource .= sprintf("/%s", $resolution);
+		}
+		return $this -> _restCall('GET', $resource);
+	}
+
+	/**
+	 * Deletes all images of the pass template
+	 *
+	 * @param int $templateId
+	 * @return array
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function deleteTemplateImages($templateId, $type="", $resolution="")
+	{
+		$resource = sprintf("/templates/%u/images", $templateId);
+		if($type != "")
+		{
+			$resource .= sprintf("/%s", $type);
+		}
+		if($resolution != "")
+		{
+			$resource .= sprintf("/%s", $resolution);
+		}
+		return $this -> _restCall('DELETE', $resource);
+	}
+
+	/**
+	 * Create or update the image with the given type and resolution of
+	 * a pass template
+	 *
+	 * @param int $templateId Template Identifier
+	 * @param string $type Image type
+	 * @param string $resolution Image resolution
+	 * @param string $image Image file name
+	 * @return bool
+	 * @throws PassSlotApiException API Exception
+	 */
+	public function saveTemplateImage($templateId, $type, $resolution, $image)
+	{
+		if (!in_array($type, self::$_imageTypes) && !in_array($type . '2x', self::$_imageTypes)) {
+			user_error('Image type ' . $type . ' not available.', E_USER_ERROR);
+		}
+
+		if (!is_file($image)) {
+			user_error('No such image  ' . $image . '.', E_USER_ERROR);
+		}
+
+		$mimeType = mime_content_type($image);
+		if ($mimeType != 'image/png' && $mimeType != 'image/jpg' && $mimeType != 'image/gif') {
+			user_error('Image mime type ' . $mimeType . ' not supported. Image will be ignored', E_USER_ERROR);
+		}
+
+		$content["image"] = sprintf('@%s;type=%s', realpath($image), $mimeType);
+
+		$resource = sprintf("/templates/%u/images/%s/%s", $templateId, $type, $resolution);
+		return $this -> _restCall('POST', $resource, $content, true);
+	}
+
+	/**
+	 * Updates the pass template distributions restrictions
+	 *
+	 * @param int $templateId Template identifier
+	 * @param int $quantityRestriction Quantity restriction
+	 * @param int $redemptionRestriction Redemption restriction
+	 * @param string $passwordProtection Password restriction
+	 * @param string $dateRestriction Date (ISO 8601 format required)
+	 * @param bool $sharingRestriction Sharing restriction
+	 */
+	public function saveTemplateRestrictions($templateId, $quantityRestriction=null, $redemptionRestriction=null, $passwordProtection=null, $dateRestriction=null, $sharingRestriction=false)
+	{
+		if($quantityRestriction != null && !is_numeric($quantityRestriction))
+		{
+			user_error('Invalid value for $quantityRestriction', E_USER_ERROR);
+		}
+		if($redemptionRestriction != null && !is_numeric($redemptionRestriction))
+		{
+			user_error('Invalid value for $redemptionRestriction', E_USER_ERROR);
+		}
+		if(!is_bool($sharingRestriction))
+		{
+			user_error('Invalid value for $sharingRestriction', E_USER_ERROR);
+		}
+		if($dateRestriction != null && !$this->_validateDate($dateRestriction))
+		{
+			user_error('Invalid value for $dateRestriction, must use an ISO 8601 string.', E_USER_ERROR);
+		}
+		$resource = sprintf("/templates/%u/restrictions", $templateId);
+		$content = json_encode(array(
+			"quantityRestriction" => $quantityRestriction,
+			"redemptionRestriction" => $redemptionRestriction,
+			"passwordProtection" => $passwordProtection,
+			"dateRestriction" => $dateRestriction,
+			"sharingRestriction" => $sharingRestriction
+		));
+		return $this -> _restCall('PUT', $resource, $content, true);
+	}
+
+	/**
+	 * Returns the pass template distributions restrictions
+	 *
+	 * @param int $templateId Template identifier
+	 */
+	public function getTemplateRestrictions($templateId)
+	{
+		$resource = sprintf("/templates/%u/restrictions", $templateId);
+		return $this -> _restCall('GET', $resource);
 	}
 
 	/**
@@ -302,6 +640,7 @@ class PassSlot {
 		} else {
 			$content = $values;
 		}
+
 		return $this -> _restCall('POST', $resource, $content, $multipart);
 	}
 
@@ -383,6 +722,26 @@ class PassSlot {
 		}
 
 		return $response;
+	}
+
+	/**
+	 * Check if a date match the ISO 8601 specs
+	 *
+	 * @param string $date
+	 * @return boolean
+	 */
+	private function _validateDate($date)
+	{
+		if (preg_match('/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/', $date, $parts) == true) {
+			$time = gmmktime($parts[4], $parts[5], $parts[6], $parts[2], $parts[3], $parts[1]);
+
+			$input_time = strtotime($date);
+			if ($input_time === false) return false;
+
+			return $input_time == $time;
+		} else {
+			return false;
+		}
 	}
 
 }
