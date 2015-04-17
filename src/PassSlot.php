@@ -779,6 +779,32 @@ class PassSlot
 }
 
 /**
+ * Class PassSlotWebhookReceiver
+ */
+class PassSlotWebhookReceiver {
+    public static function read() {
+        $body = @file_get_contents('php://input');
+        if(!$body) {
+            return null;
+        }
+
+        $json = json_decode($body);
+        if(!$json) {
+            return null;
+        }
+
+        if(!isset($json->id)) {
+            return null;
+        }
+        if($json->type == "webhook.verify") {
+            die($json->data->token);
+        }
+
+        return $json;
+    }
+}
+
+/**
  * This exception represents a generic API exception
  */
 class PassSlotApiException extends Exception
