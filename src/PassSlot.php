@@ -156,7 +156,7 @@ class PassSlot
      */
     public function createPassFromTemplate($templateId, $values = array(), $images = array())
     {
-        $resource = sprintf("/templates/%s/pass", $templateId);
+        $resource = sprintf("/templates/%.0F/pass", $templateId);
         return $this->_createPass($resource, $values, $images);
     }
 
@@ -497,7 +497,7 @@ class PassSlot
      */
     public function getTemplate($templateId)
     {
-        $resource = sprintf("/templates/%u", $templateId);
+        $resource = sprintf("/templates/%.0F", $templateId);
         return $this->_restCall('GET', $resource);
     }
 
@@ -514,7 +514,7 @@ class PassSlot
      */
     public function getTemplateImages($templateId, $type = null, $resolution = null)
     {
-        $resource = sprintf("/templates/%u/images", $templateId);
+        $resource = sprintf("/templates/%.0F/images", $templateId);
         if ($type != null) {
             $resource .= sprintf("/%s", $type);
         }
@@ -537,7 +537,7 @@ class PassSlot
      */
     public function deleteTemplateImages($templateId, $type = null, $resolution = null)
     {
-        $resource = sprintf("/templates/%u/images", $templateId);
+        $resource = sprintf("/templates/%.0F/images", $templateId);
         if ($type != null) {
             $resource .= sprintf("/%s", $type);
         }
@@ -563,7 +563,7 @@ class PassSlot
         $content = array();
         $this->_addImage($image, $type, $content);
 
-        $resource = sprintf("/templates/%u/images/%s/%s", $templateId, $type, $resolution);
+        $resource = sprintf("/templates/%.0F/images/%s/%s", $templateId, $type, $resolution);
         return $this->_restCall('POST', $resource, $content, true);
     }
 
@@ -592,7 +592,7 @@ class PassSlot
         if ($dateRestriction != null && !$this->_validateDate($dateRestriction)) {
             user_error('Invalid value for $dateRestriction, must use an ISO 8601 string.', E_USER_ERROR);
         }
-        $resource = sprintf("/templates/%u/restrictions", $templateId);
+        $resource = sprintf("/templates/%.0F/restrictions", $templateId);
         $content = json_encode(array(
             "quantityRestriction" => $quantityRestriction,
             "redemptionRestriction" => $redemptionRestriction,
@@ -611,7 +611,7 @@ class PassSlot
      */
     public function getTemplateRestrictions($templateId)
     {
-        $resource = sprintf("/templates/%u/restrictions", $templateId);
+        $resource = sprintf("/templates/%.0F/restrictions", $templateId);
         return $this->_restCall('GET', $resource);
     }
 
