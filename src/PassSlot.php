@@ -80,12 +80,12 @@ class PassSlot
     /**
      * SDK Version
      */
-    const VERSION = '0.4';
+    const VERSION = '0.5';
 
     /**
      * Default user agent
      */
-    const USER_AGENT = 'PassSlotSDK-PHP/0.4';
+    const USER_AGENT = 'PassSlotSDK-PHP/0.5';
 
     /**
      * Creates a new PassSlot instance
