@@ -23,7 +23,7 @@ if (!function_exists('curl_init')) {
 if (!function_exists('json_decode')) {
     throw new Exception('PassSlot needs the JSON PHP extension.');
 }
-if (!function_exists('mime_content_type')) {
+if (!function_exists('mime_content_type') && !(function_exists('finfo_file') && function_exists('finfo_open') && defined('FILEINFO_MIME_TYPE'))) {
     throw new Exception('PassSlot needs the FILEINFO PHP extension.');
 }
 
@@ -139,12 +139,12 @@ class PassSlot
      * <code>
      * $images = array(
      *      'icon' => 'path/to/icon.png',
-     *    'icon2x' => 'path/to/icon@2x'
+     *    'icon@2x' => 'path/to/icon@2x'
      * );
      * </code>
      *
      * For allowed image types, see $_imageTypes. Retina images can be added
-     * by appending 2x to the image types.
+     * by appending @2x to the image types.
      * @see PassSlot::$_imageTypes
      *
      * @param int $templateId Template ID
@@ -633,7 +633,7 @@ class PassSlot
             foreach ($images as $imageType => $image) {
                 $this->_addImage($image, $imageType, $content, $imageType);
             }
-            var_dump($content);
+
             // Write json to file for curl
             $jsonPath = array_search('uri', @array_flip(stream_get_meta_data(tmpfile())));
             file_put_contents($jsonPath, json_encode($values));
@@ -702,6 +702,11 @@ class PassSlot
         }
 
         $response = curl_exec($ch);
+        $error_code = curl_errno($ch);
+        if ($error_code) {
+            $error_message = curl_error($ch);
+            throw new PassSlotApiException("Please check your PHP / libcurl version and ensure that the latest security protocols are supported ($error_message)", $error_code);
+        }
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
         curl_close($ch);
@@ -757,7 +762,7 @@ class PassSlot
      */
     private function _addImage($image, $imageType, &$content, $key = "image")
     {
-        if (!in_array($imageType, self::$_imageTypes) && !in_array($imageType . '2x', self::$_imageTypes)) {
+        if (!in_array($imageType, self::$_imageTypes) && !in_array(str_replace('@2x', '', $imageType), self::$_imageTypes)) {
             user_error('Image type ' . $imageType . ' not available. Image will be ignored', E_USER_WARNING);
             return false;
         }
@@ -773,8 +778,28 @@ class PassSlot
             return false;
         }
 
-        $content[$key] = sprintf('@%s;type=%s', realpath($image), $mimeType);
+        if ((version_compare(PHP_VERSION, '5.5') >= 0)) {
+            $content[$key] = new CURLFile(realpath($image), $mimeType);
+        } else {
+            $content[$key] = sprintf('@%s;type=%s', realpath($image), $mimeType);
+        }
         return true;
+    }
+
+    private function _getMimeType($filename)
+    {
+        $realpath = realpath($filename);
+        if ($realpath && function_exists('finfo_file') && function_exists('finfo_open') && defined('FILEINFO_MIME_TYPE')) {
+            // Use the Fileinfo PECL extension (PHP 5.3+)
+            return finfo_file(finfo_open(FILEINFO_MIME_TYPE), $realpath);
+        }
+
+        if (function_exists('mime_content_type')) {
+            // Deprecated in PHP 5.3
+            return mime_content_type($realpath);
+        }
+
+        return false;
     }
 }
 
