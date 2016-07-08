@@ -637,7 +637,11 @@ class PassSlot
             // Write json to file for curl
             $jsonPath = array_search('uri', @array_flip(stream_get_meta_data(tmpfile())));
             file_put_contents($jsonPath, json_encode($values));
-            $content['values'] = sprintf('@%s;type=application/json', $jsonPath);
+            if ((version_compare(PHP_VERSION, '5.5') >= 0)) {
+                $content['values'] = new CURLFile($jsonPath, 'application/json');
+            } else {
+                $content['values'] = sprintf('@%s;type=application/json', $jsonPath);
+            }
 
         } else {
             $content = $values;
