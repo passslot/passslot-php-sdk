@@ -616,6 +616,18 @@ class PassSlot
     }
 
     /**
+     * Returns a scanner
+     *
+     * @param int $scannerId Scanner identifier
+     * @return object Scanner
+     */
+    public function getScanner($scannerId)
+    {
+        $resource = sprintf("/scanners/%.0F", $scannerId);
+        return $this->_restCall('GET', $resource);
+    }
+
+    /**
      * Prepares the values and image for the pass and creates it
      *
      * @param string $resource Resource URL for the pass creation
